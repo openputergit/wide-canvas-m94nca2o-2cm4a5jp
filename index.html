@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Business Management System</title>
+    <script src="https://unpkg.com/three@0.157.0/build/three.min.js"></script>
+    <script src="https://unpkg.com/three-mesh-ui@6.5.4/build/three-mesh-ui.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --primary: #2f6c8e;
+            --secondary: #4a90a8;
+        }
+        body {
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            background: #f8fafc;
+        }
+        .sidebar {
+            background: linear-gradient(180deg, var(--primary), var(--secondary));
+        }
+        .active-nav {
+            background: rgba(255, 255, 255, 0.1);
+            border-left: 4px solid white;
+        }
+        #canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: -1;
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas-container"></div>
+    
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <div class="sidebar w-64 text-white p-6">
+            <h1 class="text-2xl font-bold mb-8">BizManager</h1>
+            <nav class="space-y-2">
+                <a href="#dashboard" class="nav-item active-nav flex items-center p-3 rounded hover:bg-white/10">
+                    <i class="bi bi-grid-1x2-fill mr-3"></i> Dashboard
+                </a>
+                <a href="#customers" class="nav-item flex items-center p-3 rounded hover:bg-white/10">
+                    <i class="bi bi-people-fill mr-3"></i> Customers
+                </a>
+                <a href="#invoices" class="nav-item flex items-center p-3 rounded hover:bg-white/10">
+                    <i class="bi bi-receipt mr-3"></i> Invoices
+                </a>
+                <a href="#products" class="nav-item flex items-center p-3 rounded hover:bg-white/10">
+                    <i class="bi bi-box-seam mr-3"></i> Products
+                </a>
+                <a href="#purchases" class="nav-item flex items-center p-3 rounded hover:bg-white/10">
+                    <i class="bi bi-cart-fill mr-3"></i> Purchases
+                </a>
+                <a href="#expenses" class="nav-item flex items-center p-3 rounded hover:bg-white/10">
+                    <i class="bi bi-wallet2 mr-3"></i> Expenses
+                </a>
+            </nav>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1 overflow-auto">
+            <div class="p-8">
+                <!-- Dashboard Section -->
+                <div id="dashboard" class="space-y-6">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-2xl font-bold">Dashboard</h2>
+                        <div class="space-x-4">
+                            <button class="bg-primary px-4 py-2 text-white rounded hover:bg-opacity-90">
+                                <i class="bi bi-plus-lg"></i> New Invoice
+                            </button>
+                            <button class="bg-secondary px-4 py-2 text-white rounded hover:bg-opacity-90">
+                                <i class="bi bi-download"></i> Backup Data
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Stats Grid -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <div class="bg-white p-6 rounded-lg shadow">
+                            <div class="flex justify-between items-center">
+                                <h3 class="text-gray-500">Total Sales</h3>
+                                <i class="bi bi-graph-up text-primary text-xl"></i>
+                            </div>
+                            <p class="text-2xl font-bold mt-2">₹45,250</p>
+                            <p class="text-sm text-green-500 mt-2">+12.5% from last month</p>
+                        </div>
+                        <!-- Similar stat boxes for Expenses, Purchases, Profit -->
+                    </div>
+
+                    <!-- Recent Transactions -->
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <h3 class="text-xl font-semibold mb-4">Recent Transactions</h3>
+                        <table class="w-full">
+                            <thead>
+                                <tr class="text-left border-b">
+                                    <th class="pb-3">Invoice #</th>
+                                    <th class="pb-3">Customer</th>
+                                    <th class="pb-3">Amount</th>
+                                    <th class="pb-3">Status</th>
+                                    <th class="pb-3">Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Sample transaction rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Three.js Background
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+        // Create animated background with particles
+        const particles = new THREE.Points(
+            new THREE.BufferGeometry(),
+            new THREE.PointsMaterial({ size: 0.01, color: 0x4a90a8 })
+        );
+
+        const positions = new Float32Array(1000 * 3);
+        for(let i = 0; i < positions.length; i += 3) {
+            positions[i] = (Math.random() - 0.5) * 10;
+            positions[i + 1] = (Math.random() - 0.5) * 10;
+            positions[i + 2] = (Math.random() - 0.5) * 10;
+        }
+
+        particles.geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        scene.add(particles);
+        camera.position.z = 5;
+
+        // Local Storage Setup
+        const DB = {
+            customers: [],
+            invoices: [],
+            products: [],
+            purchases: [],
+            expenses: [],
+            
+            init() {
+                Object.keys(this).forEach(key => {
+                    if(typeof this[key] !== 'function') {
+                        const stored = localStorage.getItem(key);
+                        if(stored) this[key] = JSON.parse(stored);
+                    }
+                });
+            },
+            
+            save(key, data) {
+                this[key] = data;
+                localStorage.setItem(key, JSON.stringify(data));
+            }
+        };
+
+        // Initialize DB
+        DB.init();
+
+        // Animation
+        function animate() {
+            requestAnimationFrame(animate);
+            particles.rotation.x += 0.001;
+            particles.rotation.y += 0.001;
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // Responsive handling
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Navigation
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active-nav'));
+                e.currentTarget.classList.add('active-nav');
+            });
+        });
+    </script>
+<script>document.body.addEventListener('wheel', e => { if (!e.ctrlKey) return; e.preventDefault(); return }, { passive: false })</script>
+	</body>
+</html>
